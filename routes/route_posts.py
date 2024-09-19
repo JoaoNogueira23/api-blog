@@ -1,19 +1,32 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, status, Depends, HTTPException
 from faker import Faker
 from controllers.connection import DBConn
-from models.schemas import Post, Base, User
+from models.schemas import Post, Base, User, PostSchemaOut
 from datetime import datetime
+from sqlalchemy import select
+from fastapi_pagination import LimitOffsetPage, paginate
+from sqlalchemy.ext.asyncio import AsyncSession
+
 
 faker = Faker()
 db = DBConn()
 
 router_posts = APIRouter(prefix='/posts')
 
-@router_posts.get('/get-posts')
-async def get_posts():
-    return 'Rota de posts'
-
-@router_posts.get('/populate-data')
+@router_posts.get('/get-posts', response_model=LimitOffsetPage[PostSchemaOut])
+async def get_posts(db_session: AsyncSession = Depends(db.get_session)):
+    try:
+        posts_query = select(Post)
+        result = await db_session.execute(posts_query)
+        posts = result.scalars().all()
+        return paginate(posts)
+    except Exception as err:
+        print(err)
+        raise HTTPException(status_code=500, detail="Internal Server Error")
+    finally:
+        if db._engine:
+            await db.close()
+@router_posts.get('/populate-data', status_code=status.HTTP_201_CREATED)
 async def populate_data():
     try:
         # Obtenção da sessão de forma assíncrona
@@ -65,8 +78,9 @@ async def populate_data():
 
         return "Success"
     except Exception as err:
+        print(err)
+        return "Error"
+    finally:
         if db._engine:
             await db.close()
-        print(err)
 
-        return "Error"

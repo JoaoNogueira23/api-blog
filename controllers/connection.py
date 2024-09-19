@@ -13,8 +13,7 @@ class DBConn:
         self._engine = create_async_engine(DATABASE_URL)
         self._Session = sessionmaker(bind=self._engine, class_=AsyncSession, expire_on_commit=False)
 
-    def get_session(self):
-        print("Pegando sessão")
+    async def get_session(self):
         try:
             if self._engine is None:
                 self.init_db()
@@ -23,10 +22,14 @@ class DBConn:
                 print("Engine already running")
             
             print('Sucess in get session')
-            return self._Session()
+            async with self._Session() as session:
+                yield session  # Isso mantém a sessão ativa durante o uso da rota.
 
         except Exception as err:
             print(f"Error creating session: {err}")
+        finally:
+            self._Session.close_all()
+            self._engine.dispose()
 
     async def close(self):
         print("Closing engine")

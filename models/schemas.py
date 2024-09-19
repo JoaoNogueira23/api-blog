@@ -3,8 +3,25 @@ from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.ext.declarative import declarative_base
 from datetime import datetime, date
 from typing import List
+from pydantic import BaseModel
+from datetime import datetime
 
 Base = declarative_base()
+
+
+class PostSchemaOut(BaseModel):
+    postId: str
+    rawText: str
+    publishedDate: datetime
+    ingestionDate: datetime
+    author: str
+    userId: str
+    title: str
+    subTitle: str
+    imgUrlPost: str
+
+    class Config:
+        orm_mode = True
 
 class Post(Base):
     __tablename__ = 'tb_posts'
@@ -19,6 +36,10 @@ class Post(Base):
     imgUrlPost: Mapped[str] = mapped_column(String(255))
     user: Mapped["User"] = relationship("User", back_populates="post")  # Removido `delete-orphan`
 
+    class Config:
+        orm_mode = True
+
+
 class User(Base):
     __tablename__ = 'tb_users'
     userId: Mapped[str] = mapped_column(String(255), primary_key=True)
@@ -29,3 +50,5 @@ class User(Base):
     userType: Mapped[str] = mapped_column(String(255))
     post: Mapped[List["Post"]] = relationship("Post", back_populates="user", 
                                               cascade="all, delete-orphan")  # `delete-orphan` aplicado aqui
+    class Config:
+        orm_mode = True

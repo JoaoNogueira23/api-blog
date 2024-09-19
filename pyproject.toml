@@ -12,6 +12,7 @@ sqlalchemy = "^2.0.35"
 uvicorn = "^0.30.6"
 asyncpg = "^0.29.0"
 faker = "^29.0.0"
+fastapi-pagination = "^0.12.27"
 
 
 [build-system]

@@ -7,14 +7,66 @@
     <img src="https://img.shields.io/badge/GoogleCloud-%234285F4.svg?style=for-the-badge&logo=google-cloud&logoColor=white"/>
 </span>
 
-<img src="./public/img_project.webp"/>
 
-## Sobre o Projeto
-Esta API foi projetada para integrar projetos que exigem o gerenciamento de posts, como blogs e sistemas de publicação de conteúdo. Embora ainda em desenvolvimento, a API visa fornecer um CRUD robusto, permitindo a criação, leitura, atualização e exclusão de posts. Além das operações básicas, a API será equipada com funcionalidades avançadas, incluindo paginação eficiente de dados e autenticação de usuários. O objetivo final é oferecer uma solução completa e escalável que possa ser facilmente integrada a diferentes tipos de aplicações.
+# Blog API
+
+Esta é uma API desenvolvida com FastAPI para gerenciar um blog. A API oferece um conjunto completo de funcionalidades CRUD (Criar, Ler, Atualizar, Deletar) para posts de blog, além de autenticação de usuários e paginação de dados.
+
+## Funcionalidades
+
+- **Gerenciamento de Posts**: Criação, leitura, atualização e exclusão de posts de blog.
+- **Autenticação**: Sistema de login e registro de usuários com segurança.
+- **Paginação**: Facilita a navegação em listas extensas de posts.
+- **Documentação Automática**: Interface gerada automaticamente para explorar a API.
 
 ## Tecnologias
-<p>
-    A API foi desenvolvida em python, utilizando o fastapi com a extesão do sqlalchemy como ORM para facilitar a interação com o banco de dados. A aplicação será deployada no Google Cloud, com uma base de dados postgress gerenciada pelo SQL Cloud. Durante o desenvolvimento, o Docker foi empregado para realizar testes e fazer uma base de dados virtual para não gerar custos adicionais no momento do desenvolvimento, além de gerenciar os ambientes e containers no momento de colocar a aplicação em produção, assegurando consistência e isolamento dos serviços.
-</p>
+
+- **FastAPI**: Framework principal para construção da API.
+- **SQLAlchemy**: ORM utilizado para interagir com o banco de dados.
+- **Pydantic**: Utilizado para validação e definição de schemas.
+- **JWT**: Implementação de autenticação com tokens JWT.
+
+## Como Rodar a Aplicação
+
+1. Clone o repositório:
+    ```bash
+    git clone https://github.com/JoaoNogueira23/api-blog.git
+    ```
+2. Instale o Docker na sua máquina
+    veja em `https://www.docker.com/`
+3. Construção da Imagem (Docker)
+    ```bash
+    docker-compose up -d
+    ```
+3. Configuração do Ambiente (windows):
+    ```bash
+    python -m virtualvenv venv
+    venv/Scripts/activate
+    poetry install
+    poetry run uvicorn main:app --port 8080 --reload
+    ```
+4. Configure as variáveis de ambiente no arquivo `.env`.
+    ```bash
+    PG_USER='admin'
+    PG_PASS='admin123'
+    PG_DB='db_agency'
+    DATABASE_UREL='postgresql+asyncpg://admin:admin123@localhost:5432/db_agency
+    ```
+5. Execute a aplicação:
+    ```bash
+    poetry run uvicorn main:app --port 8080 --reload
+    ```
+
+## Documentação da API
+
+A documentação interativa da API pode ser acessada em `http://localhost:8000/docs` após rodar a aplicação.
+
+## Contribuição
+
+Sinta-se à vontade para contribuir com melhorias! Envie um pull request ou abra uma issue para discutirmos as mudanças.
+
+## Licença
+
+Este projeto está licenciado sob a Licença MIT. Consulte o arquivo `LICENSE` para mais detalhes.
 
 

@@ -1,7 +1,8 @@
 from fastapi import APIRouter, status, Depends, HTTPException
 from faker import Faker
 from controllers.connection import DBConn
-from models.schemas import Post, Base, User, PostSchemaOut
+from models.models import Post, Base, User
+from models.schemas import PostSchemaOut
 from datetime import datetime
 from sqlalchemy import select
 from fastapi_pagination import LimitOffsetPage, paginate

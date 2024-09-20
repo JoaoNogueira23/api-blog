@@ -32,16 +32,18 @@ Esta é uma API desenvolvida com FastAPI para gerenciar um blog. A API oferece u
     ```bash
     git clone https://github.com/JoaoNogueira23/api-blog.git
     ```
-2. Instale o Docker na sua máquina
-    veja em `https://www.docker.com/`
+2. Depedências
+    ```
+    docker, veja em https://www.docker.com/
+    poetry (pip install poetry)
+    ```
 3. Construção da Imagem (Docker)
     ```bash
     docker-compose up -d
     ```
 3. Configuração do Ambiente (windows):
     ```bash
-    python -m virtualvenv venv
-    venv/Scripts/activate
+    poetry shell
     poetry install
     poetry run uvicorn main:app --port 8080 --reload
     ```

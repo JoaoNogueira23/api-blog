@@ -27,12 +27,12 @@ async def get_posts(db_session: AsyncSession = Depends(db.get_session)):
     finally:
         if db._engine:
             await db.close()
+            
 @router_posts.get('/populate-data', status_code=status.HTTP_201_CREATED)
 async def populate_data():
     try:
         # Obtenção da sessão de forma assíncrona
-        async with db.get_session() as session:
-
+        async for session in db.get_session():
             # Manipulação do esquema usando uma conexão síncrona
             async with db._engine.begin() as conn:
                 await conn.run_sync(Base.metadata.drop_all)
@@ -42,14 +42,13 @@ async def populate_data():
             users = [
                 User(
                     userId=faker.uuid4(),
-                    name=faker.name(),
+                    username=faker.name(),
                     birthdayDate=faker.date_of_birth(),
-                    email=faker.email(),
+                    usermail=faker.email(),
                     password=faker.password(),
                     userType="standard"
                 ) for _ in range(50)  # Criando 50 usuários fictícios
             ]
-
 
             # Adicionando usuários ao banco de dados
             session.add_all(users)
@@ -84,4 +83,3 @@ async def populate_data():
     finally:
         if db._engine:
             await db.close()
-

@@ -1,15 +1,20 @@
 from fastapi import APIRouter, Depends, status, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi_pagination import LimitOffsetPage, paginate
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi_pagination.ext.sqlalchemy import paginate as slqalchemy_paginate
+
 from sqlalchemy.orm import Session
-from controllers.connection import DBConn
-from models.schemas import UserSchemaOut, UserSchemaLogin
-from models.models import User as UserModel
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from controllers.connection import DBConn
+from models.schemas import UserSchemaOut, UserSchemaLogin, UserSchemaInfo
+from models.models import User as UserModel
 
 from datetime import datetime, timedelta, timezone
 from passlib.context import CryptContext
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from uuid6 import uuid6
 from jose import JWTError, jwt 
 from decouple import config
@@ -128,11 +133,15 @@ async def user_register(
                 'exp': exp
             }
 
-            access_token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-
             ## fin token on database
             return JSONResponse(
-                content=access_token,
+                content={
+                    "message": "Login successfully",
+                    "data": {
+                        "username": user_result.username,
+                        "userType": user_result.userType
+                    }
+                },
                 status_code=status.HTTP_200_OK
             )
     

@@ -34,6 +34,14 @@ class UserSchemaOut(BaseModel):
             raise ValueError('Email format invalid')
         return value
 
+class UserSchemaInfo(BaseModel):
+    username: str
+    birthdayDate: date
+    usermail: str
+    userType: str
+    class Config:
+        from_attributes = True
+
 class UserSchemaLogin(BaseModel):
     usermail: str
     password: str

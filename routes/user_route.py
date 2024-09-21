@@ -50,35 +50,33 @@ async def user_register(
     db_session: Session = Depends(db.get_session),
 ):
     try:
+        new_uuid6 = uuid6()
+
+        birthdayDateStr = user.birthdayDate.strftime('%Y-%m-%d')
+
+        user_model = UserModel(
+            username=user.username,
+            password=pwd_context.hash(user.password),
+            usermail=user.usermail,
+            userId=str(new_uuid6),
+            birthdayDate= datetime.strptime(birthdayDateStr, '%Y-%m-%d'),
+            userType=user.userType
+        )
+
         async with db_session as session:
-            async with db._engine.begin() as conn:
+            session.add(user_model)
+            await session.commit()
 
-                new_uuid6 = uuid6()
-
-                birthdayDateStr = user.birthdayDate.strftime('%Y-%m-%d')
-
-                user_model = UserModel(
-                    username=user.username,
-                    password=pwd_context.hash(user.password),
-                    usermail=user.usermail,
-                    userId=str(new_uuid6),
-                    birthdayDate= datetime.strptime(birthdayDateStr, '%Y-%m-%d'),
-                    userType=user.userType
-                )
-
-                session.add(user_model)
-                await session.commit()
-
-                return JSONResponse(
-                    content={'message': 'User registered successfully'},
-                    status_code=status.HTTP_201_CREATED
-                )
-            
+            return JSONResponse(
+                content={'message': 'User registered successfully'},
+                status_code=status.HTTP_201_CREATED
+            )
+        
     except Exception as err:
         print(err)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail='Intern Server Error | Register Router'
+            detail='Intern Server Error'
         )
 
 
@@ -86,7 +84,6 @@ async def user_register(
 async def user_register(
     request_form_user: OAuth2PasswordRequestForm = Depends(),
     db_session: Session = Depends(db.get_session),
-    expires_in=30
 ):
     try:
         ## read payload request
@@ -99,40 +96,45 @@ async def user_register(
 
         ### query of find user
         print('vamos fazer a query')
+
+        ## object query for request
         user_on_db = select(UserModel).filter_by(usermail=user.usermail)
-        
-        print(user_on_db)
-        ## user not found
-        if user_on_db is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='User not found'
+
+        ## request ('raw sql')
+        async with db_session as session:
+            result = await session.execute(user_on_db)
+            user_result = result.scalars().first()
+
+
+            ## user not found
+            if result is None:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail='User not found'
+                )
+
+            ## user found but sent wrong credentials
+            if not pwd_context.verify(user.password, user_result.password):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail='Invalid username or password'
+                )
+
+            ## token validation
+            exp = datetime.now(timezone.utc) + timedelta(minutes=30)
+
+            payload = {
+                'sub': user.usermail,
+                'exp': exp
+            }
+
+            access_token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+            ## fin token on database
+            return JSONResponse(
+                content=access_token,
+                status_code=status.HTTP_200_OK
             )
-
-        ## user found but sent wrong credentials
-        if not pwd_context.verify(user.password, user_on_db.password):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail='Invalid username or password'
-            )
-
-
-        exp = datetime.now(timezone.utc) + timedelta(minutes=expires_in)
-
-        payload = {
-            'sub': user.usermail,
-            'exp': exp
-        }
-
-        access_token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
-
-        ## fin token on database
-        
-
-        return JSONResponse(
-            content=access_token,
-            status_code=status.HTTP_200_OK
-        )
     
     except Exception as err:
         print(err)

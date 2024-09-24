@@ -31,6 +31,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='token')
 
+
 def verify_token(access_token):
     try:
         data = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -97,11 +98,6 @@ async def user_register(
             password=request_form_user.password
         )
 
-        print('input usermail:', user.usermail)
-
-        ### query of find user
-        print('vamos fazer a query')
-
         ## object query for request
         user_on_db = select(UserModel).filter_by(usermail=user.usermail)
 
@@ -110,14 +106,16 @@ async def user_register(
             result = await session.execute(user_on_db)
             user_result = result.scalars().first()
 
-
             ## user not found
-            if result is None:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail='User not found'
+            if user_result is None:
+                return JSONResponse(
+                    content={
+                    "message": "User not found",
+                    },
+                    status_code=status.HTTP_401_UNAUTHORIZED
                 )
 
+        
             ## user found but sent wrong credentials
             if not pwd_context.verify(user.password, user_result.password):
                 raise HTTPException(

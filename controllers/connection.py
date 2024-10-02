@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from decouple import config
@@ -20,7 +21,7 @@ class DBConn:
             except Exception as err:
                 # Aqui você pode adicionar qualquer lógica de limpeza ou logging
                 print(f"Exception in get_session: {err}")
-                raise  # Relançar a exceção para que o FastAPI possa lidar com ela
+                raise HTTPException(status_code=500, detail="Database session error")
             finally:
                 await self.close()
 

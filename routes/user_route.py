@@ -102,52 +102,53 @@ async def user_login(
         user_on_db = select(UserModel).filter_by(usermail=user.usermail)
 
         ## request ('raw sql')
-        async with db_session as session:
-            result = await session.execute(user_on_db)
-            user_result = result.scalars().first()
+        result = await db_session.execute(user_on_db)
+        user_result = result.scalars().first()
 
-            ## user not found
-            if user_result is None:
-                return JSONResponse(
-                    content={
-                    "message": "User not found",
-                    },
-                    status_code=status.HTTP_401_UNAUTHORIZED
-                )
-
-        
-            ## user found but sent wrong credentials
-            if not pwd_context.verify(user.password, user_result.password):
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail='Invalid username or password'
-                )
-
-            ## token validation
-            exp = datetime.now(timezone.utc) + timedelta(minutes=30)
-            payload = {
-                'user_id': user_result.userId,
-                'exp': exp
-            }
-            token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
-
-
-            ## fin token on database
-            return JSONResponse(
-                content={
-                    "message": "Login successfully",
-                    "data": {
-                        "username": user_result.username,
-                        "userType": user_result.userType,
-                        "token": token
-                    }
-                },
-                status_code=status.HTTP_200_OK
+        ## user not found
+        if user_result is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found!"
             )
+
     
-    except Exception as err:
-        print(err)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail='Intern Server Error | Login Route'
+        ## user found but sent wrong credentials
+        if not pwd_context.verify(user.password, user_result.password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail='Invalid username or password'
+            )
+
+        ## token validation
+        exp = datetime.now(timezone.utc) + timedelta(minutes=30)
+        payload = {
+            'user_id': user_result.userId,
+            'exp': exp
+        }
+        token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
+
+
+        ## fin token on database
+        return JSONResponse(
+            content={
+                "message": "Login successfully",
+                "data": {
+                    "username": user_result.username,
+                    "userType": user_result.userType,
+                    "token": token
+                }
+            },
+            status_code=status.HTTP_200_OK
         )
+    
+    except HTTPException as err:
+        return JSONResponse(
+            content={
+                "message": err.detail
+            },
+            status_code=err.status_code
+        )
+    
+    finally:
+        await db_session.close()

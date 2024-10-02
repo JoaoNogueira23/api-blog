@@ -7,6 +7,7 @@ from datetime import datetime
 from sqlalchemy import select
 from fastapi_pagination import LimitOffsetPage, paginate
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 
 faker = Faker()
@@ -15,7 +16,7 @@ db = DBConn()
 router_posts = APIRouter(prefix='/posts')
 
 @router_posts.get('/get-posts', response_model=LimitOffsetPage[PostSchemaOut])
-async def get_posts(db_session: AsyncSession = Depends(db.get_session)):
+async def get_posts(db_session: Session = Depends(db.get_session)):
     try:
         posts_query = select(Post)
         result = await db_session.execute(posts_query)

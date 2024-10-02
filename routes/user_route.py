@@ -16,7 +16,7 @@ from models.models import User as UserModel
 from datetime import datetime, timedelta, timezone
 from passlib.context import CryptContext
 from uuid6 import uuid6
-from jose import JWTError, jwt 
+from jose import JWTError, jwt
 from decouple import config
 
 db = DBConn()
@@ -87,7 +87,7 @@ async def user_register(
 
 
 @user_router.post('/login')
-async def user_register(
+async def user_login(
     request_form_user: OAuth2PasswordRequestForm = Depends(),
     db_session: Session = Depends(db.get_session),
 ):
@@ -125,11 +125,12 @@ async def user_register(
 
             ## token validation
             exp = datetime.now(timezone.utc) + timedelta(minutes=30)
-
             payload = {
-                'sub': user.usermail,
+                'user_id': user_result.userId,
                 'exp': exp
             }
+            token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
+
 
             ## fin token on database
             return JSONResponse(
@@ -137,7 +138,8 @@ async def user_register(
                     "message": "Login successfully",
                     "data": {
                         "username": user_result.username,
-                        "userType": user_result.userType
+                        "userType": user_result.userType,
+                        "token": token
                     }
                 },
                 status_code=status.HTTP_200_OK

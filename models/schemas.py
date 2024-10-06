@@ -2,6 +2,8 @@ from datetime import datetime, date
 from pydantic import BaseModel, field_validator
 from datetime import datetime
 import re
+from typing import List
+from fastapi import UploadFile, File
 
 class PostSchemaOut(BaseModel):
     postId: str
@@ -62,4 +64,15 @@ class TokenData(BaseModel):
 
 class UserInDB(UserSchemaOut):
     hashed_password: str
+
+
+class PostItem(BaseModel):
+    title: str
+    paragraphs: List[str]
+    resume: str
+    acthor: str
+    image: UploadFile = File()
+
+    class Config:
+        from_attributes = True
 

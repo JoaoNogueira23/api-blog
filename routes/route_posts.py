@@ -1,8 +1,9 @@
 from fastapi import APIRouter, status, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from faker import Faker
 from controllers.connection import DBConn
 from models.models import Post, Base, User
-from models.schemas import PostSchemaOut
+from models.schemas import PostSchemaOut, PostItem
 from datetime import datetime
 from sqlalchemy import select
 from fastapi_pagination import LimitOffsetPage, paginate
@@ -28,6 +29,33 @@ async def get_posts(db_session: Session = Depends(db.get_session)):
     finally:
         if db._engine:
             await db.close()
+
+@router_posts.post('/create-post', status_code=status.HTTP_201_CREATED)
+async def create_post(item: PostItem, db_session: Session = Depends(db.get_session)):
+
+    try:
+        print(item)
+        return JSONResponse(
+            content={
+                "message": "Imagem processada com sucesso!"
+            },
+            status_code=status.HTTP_201_CREATED
+        )
+    
+    except Exception as err:
+        print(err)
+        return JSONResponse(
+            content={
+                "message": "Erro no upload da imagem"
+            },
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+    print(item)
+
+
+    return 'Request create post'
             
 @router_posts.get('/populate-data', status_code=status.HTTP_201_CREATED)
 async def populate_data():

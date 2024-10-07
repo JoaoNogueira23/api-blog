@@ -21,6 +21,8 @@ python-decouple = "^3.8"
 python-multipart = "^0.0.9"
 uuid6 = "^2024.7.10"
 bcrypt="^3.2.0"
+google-cloud-storage = "^2.18.2"
+pathlib = "^1.0.1"
 
 [build-system]
 requires = ["poetry-core"]

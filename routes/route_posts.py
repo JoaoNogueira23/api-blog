@@ -2,12 +2,11 @@ from fastapi import APIRouter, status, Depends, HTTPException, UploadFile, File
 from fastapi.responses import JSONResponse
 from faker import Faker
 from controllers.connection import DBConn
-from models.models import Post, Base, User
+from models.models import Post, Base, User, Post
 from models.schemas import PostSchemaOut, PostItem
 from datetime import datetime
 from sqlalchemy import select
 from fastapi_pagination import LimitOffsetPage, paginate
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 import json
@@ -18,6 +17,10 @@ from pathlib import Path
 import os
 from io import BytesIO
 from uuid6 import uuid6
+import pytz
+
+# Definindo o timezone (Exemplo: America/Sao_Paulo)
+timezone = pytz.timezone('America/Sao_Paulo')
 
 
 faker = Faker()
@@ -85,8 +88,22 @@ async def create_post(item: PostItem , db_session: Session = Depends(db.get_sess
         image_file.seek(0)
 
         blob.upload_from_file(image_file, content_type="image/webp")
-
         # save post database
+        ## config object query
+        current_time = datetime.now(timezone)
+        post_model = Post(
+            postId=str(new_uuid6),
+            rawText=';'.join(paragraphs_list),
+            publishedDate=current_time,
+            acthor=item.acthor,
+            title=item.title,
+            resume=item.resume,
+        )
+
+        ## insert database
+        async with db_session as session:
+            session.add(post_model)
+            await session.commit()
 
         return JSONResponse(
             content={
@@ -114,38 +131,6 @@ async def populate_data():
                 await conn.run_sync(Base.metadata.drop_all)
                 await conn.run_sync(Base.metadata.create_all)
 
-            # Criando usuários fictícios primeiro
-            users = [
-                User(
-                    userId=faker.uuid4(),
-                    username=faker.name(),
-                    birthdayDate=faker.date_of_birth(),
-                    usermail=faker.email(),
-                    password=faker.password(),
-                    userType="standard"
-                ) for _ in range(50)  # Criando 50 usuários fictícios
-            ]
-
-            # Adicionando usuários ao banco de dados
-            session.add_all(users)
-            await session.commit()
-
-            # Criando posts após usuários
-            posts = [
-                Post(
-                    postId=faker.uuid4(),
-                    rawText=faker.text(),
-                    publishedDate=faker.date_time_this_year(tzinfo=None),
-                    ingestionDate=datetime.now(),
-                    author=faker.name(),
-                    userId=users[i].userId,  # Associando posts a usuários existentes
-                    title=faker.sentence(),
-                    subTitle=faker.sentence(),
-                    imgUrlPost=faker.image_url()
-                ) for i in range(50)  # Criando 50 posts fictícios
-            ]
-
-            session.add_all(posts)
             await session.commit()  # Commit assíncrono
 
         print("Base populada com sucesso")

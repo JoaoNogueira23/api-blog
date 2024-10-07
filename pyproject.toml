@@ -23,6 +23,7 @@ uuid6 = "^2024.7.10"
 bcrypt="^3.2.0"
 google-cloud-storage = "^2.18.2"
 pathlib = "^1.0.1"
+pytz = "^2024.2"
 
 [build-system]
 requires = ["poetry-core"]

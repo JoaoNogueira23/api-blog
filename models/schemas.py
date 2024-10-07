@@ -68,10 +68,11 @@ class UserInDB(UserSchemaOut):
 
 class PostItem(BaseModel):
     title: str
-    paragraphs: List[str]
+    paragraphs: str
     resume: str
     acthor: str
-    image: UploadFile = File()
+    image: str
+
 
     class Config:
         from_attributes = True

@@ -43,7 +43,6 @@ def verify_token(access_token):
     
     user_on_db = select.query(UserModel).filter_by(username=data['sub']).first()
 
-    print(user_on_db)
     if user_on_db is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

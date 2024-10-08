@@ -9,12 +9,9 @@ class PostSchemaOut(BaseModel):
     postId: str
     rawText: str
     publishedDate: datetime
-    ingestionDate: datetime
-    author: str
-    userId: str
+    acthor: str
     title: str
-    subTitle: str
-    imgUrlPost: str
+    resume: str
 
     class Config:
         from_attributes = True

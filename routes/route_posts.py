@@ -53,6 +53,7 @@ async def get_posts(db_session: Session = Depends(db.get_session)):
         posts_query = select(Post)
         result = await db_session.execute(posts_query)
         posts = result.scalars().all()
+        print(posts)
         return paginate(posts)
     except Exception as err:
         print(err)

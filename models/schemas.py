@@ -12,9 +12,16 @@ class PostSchemaOut(BaseModel):
     acthor: str
     title: str
     resume: str
+    urlImage: str
 
     class Config:
         from_attributes = True
+
+    @classmethod
+    def from_orm(cls, obj):
+        post_dict = super().model_validate(obj).__dict__
+        post_dict['publishedDate'] = obj.publishedDate.strftime("%Y-%m-%d %H:%M:%S")
+        return cls(**post_dict)
 
 class UserSchemaOut(BaseModel):
     username: str

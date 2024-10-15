@@ -25,6 +25,7 @@ class Post(Base):
     acthor: Mapped[str] = mapped_column(String(100))
     title: Mapped[str] = mapped_column(String(255))
     resume: Mapped[str] = mapped_column(String(255), nullable=True)
+    urlImage: Mapped[str] = mapped_column(String(255))
 
     class Config:
         from_attributes = True

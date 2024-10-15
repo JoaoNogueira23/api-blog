@@ -30,30 +30,14 @@ router_posts = APIRouter(prefix='/posts')
 
 bucket_name = "blog-content-s3"
 
-# Função para fazer upload para o Google Cloud Storage
-def upload_to_gcs(file: UploadFile, bucket_name: str, destination_blob_name: str):
-    # Cria o cliente de storage
-    storage_client = storage.Client()
-    
-    # Pega o bucket
-    bucket = storage_client.bucket(bucket_name)
-    
-    # Define o blob (o "arquivo" no Google Cloud Storage)
-    blob = bucket.blob(destination_blob_name)
-    
-    # Lê o conteúdo do arquivo e faz upload
-    blob.upload_from_file(file.file, content_type=file.content_type)
-
-    # Retorna a URL pública do arquivo (se o bucket estiver público)
-    return blob.public_url
-
 @router_posts.get('/get-posts', response_model=LimitOffsetPage[PostSchemaOut])
 async def get_posts(db_session: Session = Depends(db.get_session)):
     try:
         posts_query = select(Post)
         result = await db_session.execute(posts_query)
         posts = result.scalars().all()
-        print(posts)
+
+
         return paginate(posts)
     except Exception as err:
         print(err)
@@ -91,14 +75,20 @@ async def create_post(item: PostItem , db_session: Session = Depends(db.get_sess
         blob.upload_from_file(image_file, content_type="image/webp")
         # save post database
         ## config object query
-        current_time = datetime.now(timezone)
+        current_time = datetime.now(timezone).strftime('%Y-%m-%d %H:%M:%S')
+
+        datetime_formated = datetime.strptime(current_time, '%Y-%m-%d %H:%M:%S')
+
+        urlImage = f"https://storage.cloud.google.com/blog-content-s3/posts/{str(datetime_formated.strftime('%Y%m%d'))}/{str(new_uuid6)}.webp"
+        
         post_model = Post(
             postId=str(new_uuid6),
             rawText=';'.join(paragraphs_list),
-            publishedDate=current_time,
+            publishedDate=datetime_formated,
             acthor=item.acthor,
             title=item.title,
             resume=item.resume,
+            urlImage=urlImage
         )
 
         ## insert database

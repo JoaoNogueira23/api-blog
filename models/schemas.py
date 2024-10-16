@@ -16,12 +16,16 @@ class PostSchemaOut(BaseModel):
 
     class Config:
         from_attributes = True
+        json_encoders = {
+            datetime: lambda v: v.strftime("%Y-%m-%d %H:%M:%S"),
+        }
 
-    @classmethod
-    def from_orm(cls, obj):
-        post_dict = super().model_validate(obj).__dict__
-        post_dict['publishedDate'] = obj.publishedDate.strftime("%Y-%m-%d %H:%M:%S")
-        return cls(**post_dict)
+    @field_validator('publishedDate', mode='before')
+    def parse_dade(cls,v):
+        if isinstance(v, datetime):
+            return v.strftime("%Y-%m-%d %H:%M:%S")
+        return v
+    
 
 class UserSchemaOut(BaseModel):
     username: str

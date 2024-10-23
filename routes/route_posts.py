@@ -6,7 +6,7 @@ from models.models import Post, Base, User, Post
 from models.schemas import PostSchemaOut, PostItem
 from datetime import datetime
 from sqlalchemy import select
-from fastapi_pagination import LimitOffsetPage, paginate
+from fastapi_pagination import LimitOffsetPage, paginate, Params
 from sqlalchemy.orm import Session
 
 import json
@@ -31,9 +31,10 @@ router_posts = APIRouter(prefix='/posts')
 bucket_name = "blog-content-s3"
 
 @router_posts.get('/get-posts', response_model=LimitOffsetPage[PostSchemaOut])
-async def get_posts(db_session: Session = Depends(db.get_session)):
+async def get_posts(db_session: Session = Depends(db.get_session), params: Params = Depends()):
     try:
-        posts_query = select(Post)
+        print(params)
+        posts_query = select(Post).limit(params.size).offset(params.page)
         result = await db_session.execute(posts_query)
         posts = result.scalars().all()
 
@@ -116,11 +117,25 @@ async def create_post(item: PostItem , db_session: Session = Depends(db.get_sess
 async def populate_data():
     try:
         # Obtenção da sessão de forma assíncrona
+        current_time = datetime.now(timezone).strftime('%Y-%m-%d %H:%M:%S')
+
+        datetime_formated = datetime.strptime(current_time, '%Y-%m-%d %H:%M:%S')
         async for session in db.get_session():
-            # Manipulação do esquema usando uma conexão síncrona
-            async with db._engine.begin() as conn:
-                await conn.run_sync(Base.metadata.drop_all)
-                await conn.run_sync(Base.metadata.create_all)
+            # Criando posts após usuários
+            posts = [
+                Post(
+                    postId=faker.uuid4(),
+                    rawText=';'.join(faker.paragraphs(5)),
+                    publishedDate=datetime_formated,
+                    acthor=faker.name(),
+                    title=faker.sentence(),
+                    resume=faker.sentence(),
+                    urlImage=faker.image_url()
+                ) for _ in range(50)  # Criando 50 posts fictícios
+            ]
+
+            session.add_all(posts)
+            await session.commit()  # Commit assíncrono
 
             await session.commit()  # Commit assíncrono
 

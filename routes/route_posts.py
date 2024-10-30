@@ -81,7 +81,8 @@ async def get_posts(db_session: Session = Depends(db.get_session), params: Custo
         total = await db_session.scalar(count_query)
 
         # Aplicar paginação
-        posts_query = posts_query.limit(params.size).offset(params.page * params.size)
+        if total != params.size:
+            posts_query = posts_query.limit(params.size).offset(params.page * params.size)
         
         # Executa a query
         result = await db_session.execute(posts_query)

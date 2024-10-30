@@ -5,7 +5,7 @@ from controllers.connection import DBConn
 from models.models import Post, Post
 from models.schemas import PostSchemaOut, PostItem
 from datetime import datetime
-from sqlalchemy import select
+from sqlalchemy import select, func
 from fastapi_pagination import LimitOffsetPage, paginate, Params as BaseParams
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -43,45 +43,60 @@ bucket_name = "blog-content-s3"
 @router_posts.get('/get-posts', response_model=LimitOffsetPage[PostSchemaOut])
 async def get_posts(db_session: Session = Depends(db.get_session), params: CustomParams = Depends()):
     try:
-        # case of search for itens
+        # Construção da consulta inicial (sem paginação)
         if params.word:
             keyword = f"%{params.word}%"
             posts_query = select(Post).where(Post.title.ilike(keyword))
         else:
-            posts_query = select(Post).limit(params.size).offset(params.page)
+            posts_query = select(Post)
         
-        # ordenation
+        # Ordenação
         field = params.sortField
         if field:
-            if params.sordOrder == 'desc':
-                posts_query = posts_query.order_by(field.desc())
+            sort_column = getattr(Post, field, None)
+            if sort_column:
+                if params.sortOrder == 'desc':
+                    posts_query = posts_query.order_by(sort_column.desc())
+                else:
+                    posts_query = posts_query.order_by(sort_column)
             else:
-                posts_query = posts_query.order_by(field)
+                print(f"Coluna de ordenação '{field}' não encontrada.")
         
-        # filter columns
-        if params.filters:
-            decoded_filters = urllib.parse.unquote(params.filters)
-            filters = json.loads(decoded_filters)[0]
-            if filters['operator'] == 'contains':
-                column_name = filters['field']
+        # Filtros
+        decoded_filters = urllib.parse.unquote(params.filters)
+        filters = json.loads(decoded_filters)
+        if len(filters) > 0:
+            filter_data = filters[0]
+            if filter_data['operator'] == 'contains':
+                column_name = filter_data['field']
                 column = getattr(Post, column_name, None)
-                keyword = f"%{filters['value']}%"
-                if column is not None:
+                keyword = f"%{filter_data['value']}%"
+                if column:
                     posts_query = posts_query.where(column.ilike(keyword))
                 else:
-                    print(f'Coluna {column_name} não encontrada')
+                    print(f"Coluna '{column_name}' não encontrada para filtragem.")
+        
+        # Obter o total de registros antes da paginação
+        count_query = posts_query.with_only_columns(func.count(Post.postId))
+        total = await db_session.scalar(count_query)
 
-
+        # Aplicar paginação
+        posts_query = posts_query.limit(params.size).offset(params.page * params.size)
+        
+        # Executa a query
         result = await db_session.execute(posts_query)
         posts = result.scalars().all()
-
-        return paginate(posts)
+        
+        # Retorna a resposta paginada com o total correto
+        return {"items": posts, "total": total, "limit": params.size, "offset": params.page * params.size}
+        
     except Exception as err:
-        print(err)
+        print(f"Erro ao buscar posts: {err}")
         raise HTTPException(status_code=500, detail="Internal Server Error")
     finally:
         if db._engine:
             await db.close()
+
 
 @router_posts.post('/create-post', status_code=status.HTTP_201_CREATED)
 async def create_post(item: PostItem , db_session: Session = Depends(db.get_session)):

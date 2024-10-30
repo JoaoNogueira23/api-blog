@@ -1,13 +1,15 @@
-from fastapi import APIRouter, status, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, status, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from faker import Faker
 from controllers.connection import DBConn
-from models.models import Post, Base, User, Post
+from models.models import Post, Post
 from models.schemas import PostSchemaOut, PostItem
 from datetime import datetime
 from sqlalchemy import select
-from fastapi_pagination import LimitOffsetPage, paginate, Params
+from fastapi_pagination import LimitOffsetPage, paginate, Params as BaseParams
 from sqlalchemy.orm import Session
+from typing import Optional
+from pydantic import Field
 
 import json
 import base64
@@ -26,18 +28,26 @@ timezone = pytz.timezone('America/Sao_Paulo')
 faker = Faker()
 db = DBConn()
 
+# custem class for params api get
+class CustomParams(BaseParams):
+    word: Optional[str] = Field(None, description="ID of the item to filter by")
+
 router_posts = APIRouter(prefix='/posts')
 
 bucket_name = "blog-content-s3"
 
 @router_posts.get('/get-posts', response_model=LimitOffsetPage[PostSchemaOut])
-async def get_posts(db_session: Session = Depends(db.get_session), params: Params = Depends()):
+async def get_posts(db_session: Session = Depends(db.get_session), params: CustomParams = Depends()):
     try:
-        print(params)
-        posts_query = select(Post).limit(params.size).offset(params.page)
+        # case of search for itens
+        if params.word:
+            keyword = f"%{params.word}%"
+            posts_query = select(Post).where(Post.title.ilike(keyword))
+        else:
+            posts_query = select(Post).limit(params.size).offset(params.page)
+
         result = await db_session.execute(posts_query)
         posts = result.scalars().all()
-
 
         return paginate(posts)
     except Exception as err:

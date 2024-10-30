@@ -10,7 +10,7 @@ class DBConn:
         self._Session = None
     
     def init_db(self):
-        self._engine = create_async_engine(DATABASE_URL, echo=True)
+        self._engine = create_async_engine(DATABASE_URL)
         self._Session = sessionmaker(bind=self._engine, class_=AsyncSession, expire_on_commit=False)
 
     async def get_session(self):

@@ -20,6 +20,7 @@ import os
 from io import BytesIO
 from uuid6 import uuid6
 import pytz
+import urllib.parse
 
 # Definindo o timezone (Exemplo: America/Sao_Paulo)
 timezone = pytz.timezone('America/Sao_Paulo')
@@ -30,7 +31,10 @@ db = DBConn()
 
 # custem class for params api get
 class CustomParams(BaseParams):
-    word: Optional[str] = Field(None, description="ID of the item to filter by")
+    word: Optional[str] = Field(None, description="Param search keywords in title")
+    sortField: Optional[str] = Field(None, description="Param for field ordenation")
+    sordOrder: Optional[str] = Field(None, description="Ordenation type")
+    filters: Optional[str] = Field(None, description='List of filters')
 
 router_posts = APIRouter(prefix='/posts')
 
@@ -45,6 +49,28 @@ async def get_posts(db_session: Session = Depends(db.get_session), params: Custo
             posts_query = select(Post).where(Post.title.ilike(keyword))
         else:
             posts_query = select(Post).limit(params.size).offset(params.page)
+        
+        # ordenation
+        field = params.sortField
+        if field:
+            if params.sordOrder == 'desc':
+                posts_query = posts_query.order_by(field.desc())
+            else:
+                posts_query = posts_query.order_by(field)
+        
+        # filter columns
+        if params.filters:
+            decoded_filters = urllib.parse.unquote(params.filters)
+            filters = json.loads(decoded_filters)[0]
+            if filters['operator'] == 'contains':
+                column_name = filters['field']
+                column = getattr(Post, column_name, None)
+                keyword = f"%{filters['value']}%"
+                if column is not None:
+                    posts_query = posts_query.where(column.ilike(keyword))
+                else:
+                    print(f'Coluna {column_name} não encontrada')
+
 
         result = await db_session.execute(posts_query)
         posts = result.scalars().all()

@@ -6,7 +6,7 @@ from models.models import Post, Post
 from models.schemas import PostSchemaOut, PostItem
 from datetime import datetime
 from sqlalchemy import select, func
-from fastapi_pagination import LimitOffsetPage, paginate, Params as BaseParams
+from fastapi_pagination import LimitOffsetPage, Params as BaseParams
 from sqlalchemy.orm import Session
 from typing import Optional
 from pydantic import Field
@@ -15,7 +15,6 @@ import json
 import base64
 from datetime import datetime
 from google.cloud import storage
-from pathlib import Path
 import os
 from io import BytesIO
 from uuid6 import uuid6
@@ -35,6 +34,7 @@ class CustomParams(BaseParams):
     sortField: Optional[str] = Field(None, description="Param for field ordenation")
     sordOrder: Optional[str] = Field(None, description="Ordenation type")
     filters: Optional[str] = Field(None, description='List of filters')
+    postId: Optional[str] = Field(None, description='Query by post id')
 
 router_posts = APIRouter(prefix='/posts')
 
@@ -43,16 +43,22 @@ bucket_name = "blog-content-s3"
 @router_posts.get('/get-posts', response_model=LimitOffsetPage[PostSchemaOut])
 async def get_posts(db_session: Session = Depends(db.get_session), params: CustomParams = Depends()):
     try:
+        itsQuery = False
         # Construção da consulta inicial (sem paginação)
-        if params.word:
+        if params.word != None:
             keyword = f"%{params.word}%"
             posts_query = select(Post).where(Post.title.ilike(keyword))
+            itsQuery = True
         else:
             posts_query = select(Post)
+        # query for id
+        if params.postId:
+            posts_query = select(Post).where(Post.postId == str(params.postId))
+            itsQuery = True
         
         # Ordenação
         field = params.sortField
-        if field:
+        if field != None:
             sort_column = getattr(Post, field, None)
             if sort_column:
                 if params.sortOrder == 'desc':
@@ -63,25 +69,27 @@ async def get_posts(db_session: Session = Depends(db.get_session), params: Custo
                 print(f"Coluna de ordenação '{field}' não encontrada.")
         
         # Filtros
-        decoded_filters = urllib.parse.unquote(params.filters)
-        filters = json.loads(decoded_filters)
-        if len(filters) > 0:
-            filter_data = filters[0]
-            if filter_data['operator'] == 'contains':
-                column_name = filter_data['field']
-                column = getattr(Post, column_name, None)
-                keyword = f"%{filter_data['value']}%"
-                if column:
-                    posts_query = posts_query.where(column.ilike(keyword))
-                else:
-                    print(f"Coluna '{column_name}' não encontrada para filtragem.")
+        if params.filters:
+            decoded_filters = urllib.parse.unquote(params.filters)
+            filters = json.loads(decoded_filters)
+            if len(filters) > 0:
+                filter_data = filters[0]
+                if filter_data['operator'] == 'contains':
+                    column_name = filter_data['field']
+                    column = getattr(Post, column_name, None)
+                    keyword = f"%{filter_data['value']}%"
+                    if column:
+                        posts_query = posts_query.where(column.ilike(keyword))
+                    else:
+                        print(f"Coluna '{column_name}' não encontrada para filtragem.")
         
         # Obter o total de registros antes da paginação
         count_query = posts_query.with_only_columns(func.count(Post.postId))
         total = await db_session.scalar(count_query)
 
         # Aplicar paginação
-        if total != params.size:
+        if total != params.size and not itsQuery:
+            print('entrei')
             posts_query = posts_query.limit(params.size).offset(params.page * params.size)
         
         # Executa a query
